@@ -12,9 +12,9 @@ duration_data=stochatic_d(index,:);
 for i=1:rep
     d=duration_data(i,:);
 %  解码生成进度计划
-%     [schedule, u_kt] = SSGS_PSGS1(AL,implement,req,resNumber,d,nrpr,pred,deadline,resNo,actNo,code);  
+    [schedule, u_kt] = SSGS_PSGS1(AL,implement,req,resNumber,d,nrpr,pred,deadline,resNo,actNo,code);  
     % 原来的解码
-    [schedule, u_kt] = stochastic_SSGS(AL,implement,req,resNumber,d,nrpr,pred,deadline,resNo);
+%     [schedule, u_kt] = stochastic_SSGS(AL,implement,req,resNumber,d,nrpr,pred,deadline,resNo);
     u_kt1=u_kt(:,1:schedule(actNo));
     % 判断进度计划是否可行、资源可行
     if scheduleFeasible(schedule,actNo,nrsu,su,implement,d)==1 && resourceFeasible(u_kt1,resNumber)==1 
