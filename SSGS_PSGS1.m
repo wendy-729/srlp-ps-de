@@ -67,7 +67,7 @@ for i=2:length(al)-1
 %             disp(actValue)
             for v = actValue
 %                 disp(v)
-                if v>=ss
+                if v>ss
                     current_t = v;
                     break
                 end
