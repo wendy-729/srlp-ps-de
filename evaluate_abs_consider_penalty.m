@@ -33,7 +33,7 @@ for i=1:rep
         % 进度计划没有超过deadline，计算目标函数值
         if flag ==0
             for k=1:resNo
-                for t=2:deadline+1
+                for t=2:schedule(actNo)
                     if u_kt(k,t)-u_kt(k,t-1)<0
                         temp = u_kt(k,t-1)-u_kt(k,t);
                     else
@@ -48,7 +48,6 @@ for i=1:rep
             for k=1:resNo
                 max_abs = 0;
                 for t=2:schedule(actNo)
-%                 for t=2:schedule(actNo)+1
                     if u_kt(k,t)-u_kt(k,t-1)<0
                         temp = u_kt(k,t-1)-u_kt(k,t);
                         if temp>max_abs

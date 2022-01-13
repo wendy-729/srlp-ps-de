@@ -26,8 +26,7 @@ for i=1:rep
             gap = [gap gap_d];
         end
         for k=1:resNo
-            for t=2:schedule(actNo)
-               
+            for t=2:schedule(actNo)               
                 if u_kt(k,t)-u_kt(k,t-1)<0
                     temp = u_kt(k,t-1)-u_kt(k,t);
                 else
@@ -39,6 +38,26 @@ for i=1:rep
         end % 资源类型
     end
 end %  情景数
+% if rep==1
+% %     disp(schedule)
+% %     disp(u_kt)
+% %     obj_t = 0;
+%     for k=1:resNo
+%         for t=2:deadline
+% %                 for t=2:schedule(actNo)               
+%             if u_kt(k,t)-u_kt(k,t-1)<0
+%                 temp = u_kt(k,t-1)-u_kt(k,t);
+%             else
+%                 temp = u_kt(k,t)-u_kt(k,t-1);
+%             end
+%             if temp~=0
+%                 disp(temp)
+%             end
+%             obj_t=obj_t+temp;
+%         end
+%         obj = obj+u_kt(k,1);
+%     end % 资源类型
+% end
 
 expected_obj=obj/rep;
 time_pro=p/rep;
