@@ -66,8 +66,9 @@ for i=2:length(al)-1
             actValue = sort(actValue);
 %             disp(actValue)
             for v = actValue
-%                 disp(v)
+                % 已经调度活动的完成时间大于等于紧前活动的完成时间
                 if v>=ss
+                % if v>ss
                     current_t = v;
                     break
                 end
