@@ -1,44 +1,50 @@
-% 只有DE
-% 编码AL-PR-AL
-% 有gap，仿真100次，得到的gap，用于精确算法计算
-% 加解码方式
-% 改了交叉的方式
 % 执行列表转化为连续向量
-% 不考虑存储，在判断最优个体时，同时考虑目标函数和PRi
-
 clc
 clear
 % profile on 
 global rn_seed; % 随机数种子
 rn_seed = 13776;
 % EDA参数设置
-para=[100,0.1,0.3,100];
+para=[50,5,0.05;
+    50,10,0.1;
+    50,15,0.2;
+    100,10,0.1;
+    100,20,0.2;
+    100,30,0.05;
+    150,15,0.2;
+    150,30,0.05;
+    150,45,0.1];
+[r,c]=size(para);
+rep=100;
+for test_para = 1:r
+temp_para = para(test_para,:);
 % 种群大小
-popsize=para(1);
+popsize=temp_para(1);
 % 局部搜索的个体数
-elit_p=popsize*para(2);
+elit_p=temp_para(2);
 % AL局部搜索的概率
-p_mutation=para(3);
-% 情景的个数
-rep=para(4);
+p_mutation=temp_para(3);
+% % 情景的个数
+% rep=para(4);
 % 及时完成的概率
 Pr=0.9;
 % 活动数量
-for actN=[30]
+for actN=[5]
 actNumber=num2str(actN);
 %分布类型
 distribution=cell(1,1);
 distribution{1,1}='U1';
 for disT=distribution
 disT=char(disT);
-% 测试哪一组数据 J10是第三组数据
 gdset = [1];
+% if actN==10
+%     gdset(1)=3;
+% end
 for gd=gdset
 groupdata = num2str(gd);
-for dtime=[1.5,1.8]
-for act=396:30:480
-% for act=18:18
-% iter_d = [];
+for dtime=[1.5]
+for act=1:20
+iter_d = [];
 rng(rn_seed,'twister');% 设置随机数种子
 actno=num2str(act);
 %% 初始化数据
@@ -70,12 +76,10 @@ mandatory = initfile(mandatoryname);
 choiceListname=[fp_choice,groupdata,'\choiceList\J',actNumber,'_',actno,'.txt'];
 choiceList = initfile(choiceListname);
 
-
 % 写入文件路径
-fpathRoot=['C:\Users\ASUS\Desktop\测试实验-srlp-ps\DE\J',actNumber,'\'];
+fpathRoot=['C:\Users\ASUS\Desktop\测试实验-srlp-ps\Para\J',actNumber,'\',num2str(test_para),'\'];
 setName = ['srlp_',num2str(actNo)];
 dt=num2str(dtime);
-
 % DE最好的解
 best_al=zeros(1,actNo);
 best_decode = zeros(1,actNo);
@@ -88,14 +92,24 @@ best_nrsu=nrsu;
 best_pred=pred;
 best_projRelation=projRelation;
 best_su=su;
-
+% 存储
+memory_vl = zeros(1,actNo+2);
+memory_vl(actNo+1)=Inf;
+memory_al = zeros(1,actNo);
+memory_dl = zeros(1,actNo);
 % 惩罚成本【都为1】
 cost=ones(1,resNo);
 %% 所有活动都执行的项目截止日期[cpm] 平均工期
 [all_est, all_eft]= forward(projRelation, duration);
 lftn=all_eft(actNo);
 deadline=floor(dtime*all_eft(actNo));
-%% 计时
+% disp(deadline)
+% % 所有活动的最长完成时间
+% max_duration = max(stochatic_d,[],1);
+% [all_est, all_eft]= forward(projRelation, max_duration);
+% max_lftn = all_eft(actNo);
+% disp(max_lftn)
+% disp(floor(max_lftn*dtime))
 tic;
 % 记录初始种群的时间
 % tstart = tic;
@@ -198,7 +212,7 @@ for i=1:popsize
          implementList(i,actNo+2)=time_pro;
 
          % 记录最好的个体【不考虑服务水平】
-         if implementList(i,actNo+1)<best_implement(actNo+1)&&time_pro>=Pr
+         if implementList(i,actNo+1)<best_implement(actNo+1)
              best_implement=implementList(i,:);
              best_al=al;
              best_decode = decode;
@@ -214,6 +228,26 @@ for i=1:popsize
 %         disp('项目结构不可行')
     end
 end 
+% disp(
+% 存储每一代中满足Pr且目标函数值最小的个体
+vl_index =  find(implementList(:,actNo+2)>=Pr);
+memory_vlList=implementList(implementList(:,actNo+2)>=Pr,:);
+memory_alList = alList(vl_index,:);
+memory_dlList = decodeList(vl_index,:);
+[~,index_min]=min(memory_vlList(:,actNo+1));
+if length(index_min)~=0
+    memory_vl = memory_vlList(index_min,:);
+    memory_al = memory_alList(index_min,:);
+    memory_dl = memory_dlList(index_min,:);
+end
+% 初始种群的计算时间
+% tused = toc(tstart);
+
+% len_vl = length(vl_index);
+% memory_vl(1:len_vl,:) = implementList(vl_index,:);
+% memory_al(1:len_vl,:) = alList(vl_index,:);
+% memory_dl(1:len_vl,:) = decodeList(vl_index,:);
+% disp(memory_vl)
 %% 迭代
 % 终止条件
 end_time = 15;
@@ -371,12 +405,12 @@ while nr_schedules<end_schedules
         new_implement(actNo+1)=expected_obj;
         new_implement(actNo+2)=time_pro; 
 
-        if expected_obj<new_implementList(pop,actNo+1)&&time_pro>=Pr
+        if expected_obj<new_implementList(pop,actNo+1)
             new_implementList(pop,:) = new_implement;
             new_alList(pop,:) = new_al;     
             new_decodeList(pop,:)=new_code;
         end
-        if  expected_obj<best_implement(actNo+1)&&time_pro>=Pr
+        if  expected_obj<best_implement(actNo+1)
             best_implement = new_implement;
             best_al = new_al;  
             best_decode = new_code;
@@ -408,12 +442,12 @@ while nr_schedules<end_schedules
         
         new_implement(actNo+1)=expected_obj;
         new_implement(actNo+2)=time_pro;
-        if expected_obj<new_implementList(i,actNo+1)&&time_pro>=Pr
+        if expected_obj<new_implementList(i,actNo+1)
             new_implementList(i,:) = new_implement;
             new_alList(i,:) = new_AL;     
             new_decodeList(i,:)=temp_code;
         end
-        if expected_obj<best_implement(actNo+1)&&time_pro>=Pr
+        if expected_obj<best_implement(actNo+1)
             best_implement=new_implement;
             best_al=new_AL;
             best_decode = temp_code;
@@ -424,10 +458,27 @@ while nr_schedules<end_schedules
             best_su=su_i;
         end
     end 
+    vl_index =  find(new_implementList(:,actNo+2)>=Pr);
+    % 找到满足置信度的个体
+    memory_vlList=new_implementList(vl_index,:);
+    memory_alList = new_alList(vl_index,:);
+    memory_dlList = new_decodeList(vl_index,:);
+    [r,c]=size(memory_vlList);
+    % 选择满足PR并且目标函数最小的个体
+    [~,index_min]=min(memory_vlList(:,actNo+1));
+    temp_memory_vl = memory_vlList(index_min,:);
+    temp_memory_al = memory_alList(index_min,:);
+    temp_memory_dl = memory_dlList(index_min,:);
+    
+    if r~=0
+        if temp_memory_vl(actNo+1)<memory_vl(actNo+1)
+            memory_vl = temp_memory_vl;
+            memory_al = temp_memory_al;
+            memory_dl = temp_memory_dl;
+        end
+    end
     nr_schedules=nr_schedules+elit_p; 
-%     tused = toc(tstart);
 end % 迭代结束
-
 %% 计算真正的目标函数
 % disp(memory_vl)
 end_gap = [];
@@ -443,24 +494,49 @@ if isempty(end_gap)
 else
     end_gap = max(end_gap);
 end
+% 迭代过程中大于0.9的目标函数值最小的个体
+memeroy_end_gap = [];
+if memory_vl(actNo+1)~=Inf
+    % 更新项目结构
+    [projRelation_i,memory_nrpr_i,memory_nrsu_i,memory_su_i,memory_pred_i]=updateRelation(projRelation,nrpr,nrsu,su,pred,choiceList,memory_vl(1:actNo),actNo);
+    [memory_expected_obj,memory_time_pro,memory_gap]=evaluate_abs_nopenalty_code(memory_al,rep,memory_vl,req,resNumber,memory_nrpr_i,memory_pred_i,memory_nrsu_i,memory_su_i,deadline,resNo,actNo,stochatic_d,memory_dl);
+    memory_vl(actNo+1) = memory_expected_obj;
+    memory_vl(actNo+2) = memory_time_pro;
+    memeroy_end_gap = memory_gap;
+end
+if isempty(memeroy_end_gap)
+    memeroy_end_gap = 0;
+else
+    memeroy_end_gap = max(memeroy_end_gap);
+end
+if best_implement(actNo+2)<0.9 && memory_vl(actNo+2)>=0.9
+    best_implement = memory_vl;
+    best_al = memory_al;
+    best_decode = memory_dl;
+    end_gap = memeroy_end_gap;
+end
+if best_implement(actNo+2)>=0.9 && memory_vl(actNo+2)>=0.9 && best_implement(actNo+1)>memory_vl(actNo+1)
+    best_implement = memory_vl;
+    best_al = memory_al;
+    best_decode = memory_dl;
+    end_gap = memeroy_end_gap;
+end
+% cputime = tused;
 cputime = toc;
 %% 写入文件
 outResults=[act,best_implement(actNo+1),best_implement(actNo+2),cputime,best_al,best_implement,end_schedules];
-outFile=[fpathRoot,num2str(end_schedules),'_sch_de_pr_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
-% % 时间
+outFile=[fpathRoot,num2str(end_schedules),'_sch_de_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
+% 时间
 % outResults=[act,best_implement(actNo+1),best_implement(actNo+2),cputime,best_al,best_implement];
 % outFile=[fpathRoot,num2str(end_time),'s_sch_de_target_ssgs1_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
 dlmwrite(outFile,outResults,'-append', 'newline', 'pc',  'delimiter', '\t');
-% 写入gap
-outResults1 = [act, end_gap];
-outFile1=[fpathRoot,num2str(end_schedules),'_sch_de_gap_memory_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
-dlmwrite(outFile1,outResults1,'-append', 'newline', 'pc',  'delimiter', '\t');
 
 outResults=[];
-outResults1=[];
+% outResults1=[];
 disp(['Instance ',num2str(act),' has been solved.']);
 end % 实例
 end % 项目截止日期
 end % 组数
 end % 分布 
 end % 活动数量
+end % 参数设置

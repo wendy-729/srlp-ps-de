@@ -12,7 +12,7 @@ duration_data=stochatic_d(index,:);
 for i=1:rep
     d=duration_data(i,:);
     % 原来的解码，满足优先关系和资源使用可行
-    [schedule, u_kt] = stochastic_SSGS(AL,implement,req,resNumber,d,nrpr,pred,deadline,resNo);
+    [schedule, u_kt] = SSGS(AL,implement,req,resNumber,d,nrpr,pred,deadline,resNo);
 %     disp(schedule)
     u_kt=u_kt(:,1:deadline);
 %     disp(u_kt)

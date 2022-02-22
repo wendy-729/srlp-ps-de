@@ -4,7 +4,7 @@ function obj=evaluate_objective_penalty(AL,rep,implement,req,resNumber,nrpr,pred
 % 总的目标函数值
 obj=0;
 % 平均工期
-[schedule, u_kt] = stochastic_SSGS(AL,implement,req,resNumber,duration,nrpr,pred,deadline,resNo);
+[schedule, u_kt] = SSGS(AL,implement,req,resNumber,duration,nrpr,pred,deadline,resNo);
 u_kt1=u_kt(:,1:deadline);   
 % 判断进度计划是否可行、资源可行
 if scheduleFeasible(schedule,actNo,nrsu,su,implement,duration)==1 && resourceFeasible(u_kt1,resNumber)==1 

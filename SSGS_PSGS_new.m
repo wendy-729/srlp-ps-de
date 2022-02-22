@@ -1,7 +1,7 @@
 % 编码执行SSGS或PSGS
 % 刚开始只满足优先关系
 % 安排活动的开始时间有两种方式：第一种类似SSGS，第二种类似并行，考虑了其他可能的开始时间，类似于将活动往后推
-function [schedule, u_kt] = SSGS_PSGS1(al,implement,req,resNumber,duration,nrpr,pred,deadline,resNo,actNo,code)
+function [schedule, u_kt] = SSGS_PSGS_new(al,implement,req,resNumber,duration,nrpr,pred,deadline,resNo,actNo,code)
 % code = ones(1,actNo);
 schedule=zeros(1,actNo);
 % 有的进度进化可能超过了截止日期，所以就扩大了deadline
@@ -62,15 +62,23 @@ for i=2:length(al)-1
        else
             % 类似于并行进度生成机制
             % 当前时间【上一阶段正在执行活动的最小完成时间,且大于该活动可能的开始时间（紧前活动的完成时间）】
-            current_t = Inf;
             actValue = sort(actValue);
-            for v = actValue
-                % 已经调度活动的完成时间大于等于紧前活动的完成时间
-                if v>=ss
-                    current_t = v;
-                    break
-                end
-            end
+            index = find(actValue>=ss,1);
+%             disp(actValue)
+%             disp(ss)
+            current_t = actValue(index);
+%             disp(current_t)
+%             current_t = Inf;
+%             actValue = sort(actValue);
+%             disp(actValue)
+%             for v = actValue
+%                 % 已经调度活动的完成时间大于等于紧前活动的完成时间
+%                 if v>=ss
+% %                 if v>ss
+%                     current_t = v;
+%                     break
+%                 end
+%             end
 %             disp(ss)
 %             disp(current_t)
 %             disp('----------')

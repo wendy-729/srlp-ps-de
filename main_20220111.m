@@ -12,7 +12,7 @@ clear
 global rn_seed; % 随机数种子
 rn_seed = 13776;
 % EDA参数设置
-para=[100,0.1,0.3,100];
+para=[100,0.1,0.3,5];
 % 种群大小
 popsize=para(1);
 % 局部搜索的个体数
@@ -24,7 +24,7 @@ rep=para(4);
 % 及时完成的概率
 Pr=0.9;
 % 活动数量
-for actN=[30]
+for actN=[5]
 actNumber=num2str(actN);
 %分布类型
 distribution=cell(1,1);
@@ -35,8 +35,8 @@ disT=char(disT);
 gdset = [1];
 for gd=gdset
 groupdata = num2str(gd);
-for dtime=[1.5,1.8]
-for act=6:10:100
+for dtime=[1.5]
+for act=17:17
 % for act=18:18
 % iter_d = [];
 rng(rn_seed,'twister');% 设置随机数种子
@@ -72,7 +72,8 @@ choiceList = initfile(choiceListname);
 
 
 % 写入文件路径
-fpathRoot=['C:\Users\ASUS\Desktop\srlp-ps测试实验\DE\J',actNumber,'\'];
+% fpathRoot=['C:\Users\ASUS\Desktop\srlp-ps测试实验1\DE\J',actNumber,'\'];
+fpathRoot=['C:\Users\ASUS\Desktop\测试实验-srlp-ps\DE\J',actNumber,'\'];
 setName = ['srlp_',num2str(actNo)];
 dt=num2str(dtime);
 
@@ -91,6 +92,7 @@ best_su=su;
 % 存储
 memory_vl = zeros(1,actNo+2);
 memory_vl(actNo+1)=Inf;
+memory_vl(actNo+2)=Inf;
 memory_al = zeros(1,actNo);
 memory_dl = zeros(1,actNo);
 % 惩罚成本【都为1】
@@ -105,9 +107,11 @@ deadline=floor(dtime*all_eft(actNo));
 % [all_est, all_eft]= forward(projRelation, max_duration);
 % max_lftn = all_eft(actNo);
 % disp(max_lftn)
-% % disp(floor(max_lftn*dtime))
+% disp(floor(max_lftn*dtime))
 %% 计时
-tstart = tic;
+tic;
+% 记录初始种群的时间
+% tstart = tic;
 %% 随机生成执行列表【初始活动列表】
 % 所有实施活动置为1
 implementList=zeros(popsize,actNo+2);
@@ -218,34 +222,36 @@ for i=1:popsize
              best_su=su_i;
          end
     else
-        disp('项目结构不可行')
+        implementList(i,actNo+1)=Inf;
+        implementList(i,actNo+2)=Inf;
+%         disp('项目结构不可行')
     end
 end 
+% 存储每一代中满足Pr且目标函数值最小的个体
 vl_index =  find(implementList(:,actNo+2)>=Pr);
 memory_vlList=implementList(implementList(:,actNo+2)>=Pr,:);
 memory_alList = alList(vl_index,:);
 memory_dlList = decodeList(vl_index,:);
 [~,index_min]=min(memory_vlList(:,actNo+1));
-% disp(index_min)
 if length(index_min)~=0
     memory_vl = memory_vlList(index_min,:);
     memory_al = memory_alList(index_min,:);
     memory_dl = memory_dlList(index_min,:);
 end
-% disp(memory_vl)
-% disp(index_min)
+% 初始种群的计算时间
+% tused = toc(tstart);
+
 % len_vl = length(vl_index);
 % memory_vl(1:len_vl,:) = implementList(vl_index,:);
 % memory_al(1:len_vl,:) = alList(vl_index,:);
 % memory_dl(1:len_vl,:) = decodeList(vl_index,:);
 % disp(memory_vl)
 %% 迭代
-% 时间终止条件
+% 终止条件
 end_time = 30;
 end_schedules=1000;
 nr_schedules=popsize;
 % 最大迭代次数
-tused = toc(tstart);
 % 如果终止条件是时间限制，最大的迭代次数怎么计算？
 % max_iter = ceil(end_time/tused);
 max_iter = ceil(end_schedules/popsize);
@@ -253,13 +259,15 @@ max_iter = ceil(end_schedules/popsize);
 new_implementList=implementList;
 new_alList = alList;
 new_decodeList = decodeList;
-% 初始参数设置
+% 初始参数范围设置
 A_min = 0.3;
 A_max = 1.5;
 r_min = 0.1;
 r_max = 1;
+%VL和DL
 c_i_min = 0.5;
 c_i_max = 0.9;
+% AL
 c_a_min = 0.3;
 c_a_max = 0.9;
 
@@ -450,10 +458,12 @@ while nr_schedules<end_schedules
         end
     end 
     vl_index =  find(new_implementList(:,actNo+2)>=Pr);
+    % 找到满足置信度的个体
     memory_vlList=new_implementList(vl_index,:);
     memory_alList = new_alList(vl_index,:);
     memory_dlList = new_decodeList(vl_index,:);
     [r,c]=size(memory_vlList);
+    % 选择满足PR并且目标函数最小的个体
     [~,index_min]=min(memory_vlList(:,actNo+1));
     temp_memory_vl = memory_vlList(index_min,:);
     temp_memory_al = memory_alList(index_min,:);
@@ -467,9 +477,10 @@ while nr_schedules<end_schedules
         end
     end
     nr_schedules=nr_schedules+elit_p; 
-    tused = toc(tstart);
+%     tused = toc(tstart);
 end % 迭代结束
 %% 计算真正的目标函数
+% disp(memory_vl)
 end_gap = [];
 if best_implement(actNo+1)~=Inf
     [expected_obj,time_pro,gap]=evaluate_abs_nopenalty_code(best_al,rep,best_implement,req,resNumber,best_nrpr,best_pred,best_nrsu,best_su,deadline,resNo,actNo,stochatic_d,best_decode);
@@ -477,7 +488,7 @@ if best_implement(actNo+1)~=Inf
     best_implement(actNo+2) = time_pro;
     end_gap = [end_gap gap];
 end
-cputime = tused;
+
 if isempty(end_gap)
     end_gap = 0;
 else
@@ -510,25 +521,33 @@ if best_implement(actNo+2)>=0.9 && memory_vl(actNo+2)>=0.9 && best_implement(act
     best_decode = memory_dl;
     end_gap = memeroy_end_gap;
 end
+% cputime = tused;
+cputime = toc;
 % disp(end_gap)
 disp(best_implement(actNo+1))
 disp(best_implement(actNo+2))
+% disp(end_gap)
+disp(cputime)
+% 
+disp('------------')
+disp(deadline)
+
 % profile  viewer
-%% 写入文件
-outResults=[act,best_implement(actNo+1),best_implement(actNo+2),cputime,best_al,best_implement,end_schedules];
-outFile=[fpathRoot,num2str(end_schedules),'_sch_de_ssgs_psgs_memory_rm_1',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
-% 时间
-% outResults=[act,best_implement(actNo+1),best_implement(actNo+2),cputime,best_al,best_implement];
-% outFile=[fpathRoot,num2str(end_time),'s_sch_de_target_ssgs1_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
-dlmwrite(outFile,outResults,'-append', 'newline', 'pc',  'delimiter', '\t');
+% %% 写入文件
+% outResults=[act,best_implement(actNo+1),best_implement(actNo+2),cputime,best_al,best_implement,end_schedules];
+% outFile=[fpathRoot,num2str(end_schedules),'_sch_de_ssgs_psgs_memory_rm_1',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
+% % 时间
+% % outResults=[act,best_implement(actNo+1),best_implement(actNo+2),cputime,best_al,best_implement];
+% % outFile=[fpathRoot,num2str(end_time),'s_sch_de_target_ssgs1_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
+% dlmwrite(outFile,outResults,'-append', 'newline', 'pc',  'delimiter', '\t');
 % % 写入gap
 % outResults1 = [act, end_gap];
 % outFile1=[fpathRoot,num2str(end_schedules),'_sch_de_gap_memory_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
 % dlmwrite(outFile1,outResults1,'-append', 'newline', 'pc',  'delimiter', '\t');
-
-outResults=[];
-% outResults1=[];
-disp(['Instance ',num2str(act),' has been solved.']);
+% 
+% outResults=[];
+% % outResults1=[];
+% disp(['Instance ',num2str(act),' has been solved.']);
 end % 实例
 end % 项目截止日期
 end % 组数

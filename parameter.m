@@ -82,7 +82,7 @@ fp_duration = ['C:\Users\ASUS\Desktop\SRLP-PS随机工期\J',actNumber,'\J',actNumbe
 stochatic_d = initfile(fp_duration);
 
 % 写入文件路径
-fpathRoot=['C:\Users\ASUS\Desktop\测试实验20211102\Para\J',actNumber,'\',num2str(test_para),'\'];
+fpathRoot=['C:\Users\ASUS\Desktop\测试实验-srlp-ps\Para\J',actNumber,'\',num2str(test_para),'\'];
 setName = ['srlp_',num2str(actNo)];
 dt=num2str(dtime);
 

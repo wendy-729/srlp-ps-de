@@ -1,6 +1,5 @@
 % 只有DE
 % 编码AL-PR-AL
-% 不考虑gap
 % 目标函数加惩罚
 % 改解码
 
@@ -22,9 +21,9 @@ rep=para(4);
 % 超期的惩罚成本
 C=3;
 % 评价个体使用平均工期为1,仿真为0
-flag = 0;
+flag =1;
 % 活动数量
-for actN=[5]
+for actN=[30]
 actNumber=num2str(actN);
 %分布类型
 distribution=cell(1,1);
@@ -32,12 +31,12 @@ distribution{1,1}='U1';
 for disT=distribution
 disT=char(disT);
 % 测试哪一组数据 J10是第三组数据
-gdset = [1];
+gdset = [1,8];
 for gd=gdset
 groupdata = num2str(gd);
-for dtime=[1.2]
+for dtime=[1.2,1.4]
 % for act=1:20
-for act=4:4
+for act=6:30:480
 % iter_d = [];
 rng(rn_seed,'twister');% 设置随机数种子
 actno=num2str(act);
@@ -73,13 +72,12 @@ choiceList = initfile(choiceListname);
 
 % 写入文件路径
 % fpathRoot=['C:\Users\ASUS\Desktop\srlp-ps测试实验1\DE\J',actNumber,'\'];
-fpathRoot=['C:\Users\ASUS\Desktop\测试实验-srlp-ps\DE\J',actNumber,'\'];
+fpathRoot=['C:\Users\ASUS\Desktop\新模型测试实验-srlp-ps\DE\J',actNumber,'\'];
 setName = ['srlp_',num2str(actNo)];
 dt=num2str(dtime);
 
 % DE最好的解
 best_al=zeros(1,actNo);
-best_decode = zeros(1,actNo);
 best_implement=zeros(1,actNo+2);
 best_implement(1,actNo+1)=Inf;
 best_implement(1,actNo+2)=Inf;
@@ -91,7 +89,7 @@ best_projRelation=projRelation;
 best_su=su;
 % 惩罚成本【都为1】
 cost=ones(1,resNo);
-%% 所有活动都执行的项目截止日期[cpm] 平均工期
+%% 所有活动都执行的项目截止日期[cpm] 平均工期-关键路径
 [all_est, all_eft]= forward(projRelation, duration);
 lftn=all_eft(actNo);
 deadline=floor(dtime*all_eft(actNo));
@@ -188,12 +186,12 @@ for i=1:popsize
          % 不仿真，用平均工期，算法的终止条件是最多评估多少个个体
          if flag==1
             expected_obj=evaluate_objective_penalty(al,rep,implement,req,resNumber,nrpr_i,pred_i,nrsu_i,su_i,deadline,resNo,actNo,C,duration);
-         end 
-          % 仿真
-         expected_obj=evaluate_abs_consider_penalty_new_objective(al,rep,implement,req,resNumber,nrpr_i,pred_i,nrsu_i,su_i,deadline,resNo,actNo,stochatic_d,C);      
+         else 
+              % 仿真
+             expected_obj=evaluate_abs_consider_penalty_new_objective(al,rep,implement,req,resNumber,nrpr_i,pred_i,nrsu_i,su_i,deadline,resNo,actNo,stochatic_d,C);      
+         end
          implementList(i,actNo+1)=expected_obj;
  
-
          % 记录最好的个体【不考虑服务水平】
          if implementList(i,actNo+1)<best_implement(actNo+1)
              best_implement=implementList(i,:);
@@ -211,7 +209,7 @@ end
 %% 迭代
 % 终止条件
 end_time = 15;
-end_schedules=1000;
+end_schedules=3000;
 nr_schedules=popsize;
 % 最大迭代次数
 % 如果终止条件是时间限制，最大的迭代次数怎么计算？
@@ -220,20 +218,17 @@ max_iter = ceil(end_schedules/popsize);
 % 迭代中的种群
 new_implementList=implementList;
 new_alList = alList;
-% new_decodeList = decodeList;
 % 初始参数范围设置
+% 控制参数的范围
 A_min = 0.3;
 A_max = 1.5;
-r_min = 0.1;
-r_max = 1;
-%VL和DL
+% 交叉概率
+%VL
 c_i_min = 0.5;
 c_i_max = 0.9;
 % AL
 c_a_min = 0.3;
 c_a_max = 0.9;
-
-
 % 调整DE参数
 iter_count = 0;
 % while tused<end_time
@@ -251,20 +246,16 @@ while nr_schedules<end_schedules
         if A <A_min
             A = A_min;
         end
-        % 两种变异策略的控制概率,r要逐渐增大
-%         r_m = r_min*exp(-(iter_count*log(r_min/r_max)/max_iter)); % 指数增长
+        % 两种变异策略的控制概率
         r_m = exp(-(iter_count)/max_iter);
-%         r_m = 1/(1+exp(1-(max_iter/iter_count)^2)); % 效果不好
-        if r_m>r_max
-            r_m = r_max;
-        end
+%         if r_m>r_max
+%             r_m = r_max;
+%         end
         %当前个体转换
-%         current_code = new_decodeList(pop,1:actNo)+rand(1,actNo);
         current_implement = new_implementList(pop,1:actNo)+rand(1,actNo);
         current_prio = transmute_prio(new_alList(pop,:),actNo);
         for i = 1:actNo 
             if rand<r_m
-%                 disp('i')
                 % 随机选择三个个体
                 r_list = randperm(popsize,3);
                 temp_value = [new_implementList(r_list(1),actNo+1) new_implementList(r_list(2),actNo+1) new_implementList(r_list(3),actNo+1)];
@@ -281,19 +272,16 @@ while nr_schedules<end_schedules
                 implement_r1 = new_implementList(r1,1:actNo)+rand(1,actNo);
                 implement_r2 = new_implementList(r2,1:actNo)+rand(1,actNo);
                 implement_r3 = new_implementList(r3,1:actNo)+rand(1,actNo);
-%                 code_r1 = new_decodeList(r1,:)+rand(1,actNo);
-%                 code_r2 = new_decodeList(r2,:)+rand(1,actNo);
-%                 code_r3 = new_decodeList(r3,:)+rand(1,actNo);
+                % 变异
                 mutation_implement(i) = implement_r1(i)+A*(implement_r2(i)-implement_r3(i));
-%                 mutation_decode(i) = code_r1(i)+A*(code_r2(i)-code_r3(i));
                 mutation_al(i) = al_prio_r1(i)+A*(al_prio_r2(i)- al_prio_r3(i));
             else
 %                 disp('j')
                 % 转换best_al
                 best_prio = transmute_prio(best_al,actNo);
                 best_implement_pro = best_implement(1:actNo)+rand(1,actNo);
-                best_decode_pro = best_decode(1:actNo)+rand(1,actNo);
                 % 从种群中最好的10%的解中随机选择一个
+                % 选择最好的10%个解
                 [~,best_part ]= sort(new_implementList(:,actNo+1));
                 best_part = best_part(1:popsize*0.1);
                 randi_index = randi([1,popsize*0.1],1,1);      
@@ -302,7 +290,7 @@ while nr_schedules<end_schedules
                 index1 = best_part(randi_index);
                 al_prio_r1 = transmute_prio(new_alList(index1,:),actNo);
                 implement_r1 = new_implementList(index1,1:actNo)+rand(1,actNo);
-%                 code_r1 = new_decodeList(index1,:)+rand(1,actNo);
+
                 % 从剩下个体中随机选择一个
                 all_index = 1:popsize;
                 all_index(best_part)=[];
@@ -311,21 +299,17 @@ while nr_schedules<end_schedules
                 index2 = all_index(randi_index2);
                 al_prio_r2 = transmute_prio(new_alList(index1,:),actNo);
                 implement_r2 = new_implementList(index1,1:actNo)+rand(1,actNo);
-%                 code_r2 = new_decodeList(index1,:)+rand(1,actNo);
-%            
+                % 变异
                 mutation_implement(i) = current_implement(i)+A*(best_implement_pro(i)-current_implement(i))+A*(implement_r1(i)-implement_r2(i));
-%                 mutation_decode(i) = current_code(i)+A*(best_decode_pro(i)-current_code(i))+A*(code_r1(i)-code_r2(i));
                 mutation_al(i) = current_prio(i)+A*(best_prio(i)-current_prio(i))+A*(al_prio_r1(i)- al_prio_r2(i));
             end
         end
        %% 交叉
         target_implement = current_implement;
-%         target_decode = current_code;
         target_al = current_prio;
         % 试验个体
         trial_implement = zeros(1,actNo);
         trial_al = zeros(1,actNo);
-%         trial_decode = zeros(1,actNo);
         % 交叉概率【CR由大变小】，指数减小
         c_i = c_i_max*exp(iter_count*log(c_i_min/c_i_max)/max_iter);
         c_a = c_a_max*exp(iter_count*log(c_a_min/c_a_max)/max_iter);
@@ -341,10 +325,8 @@ while nr_schedules<end_schedules
         for i=1:actNo
             if rand_i(i)<=c_i
                 trial_implement(i) = mutation_implement(i);
-%                 trial_decode(i)=mutation_decode(i);
             else
                 trial_implement(i) = target_implement(i);
-%                 trial_decode(i)=target_decode(i);
             end
             if rand_a(i)<=c_a
                 trial_al(i) = mutation_al(i);
@@ -352,28 +334,33 @@ while nr_schedules<end_schedules
                 trial_al(i) = target_al(i);
             end 
         end
+        
        %% 生成新个体 将试验向量转化执行列表、活动列表和编码列表
-%         new_code = (trial_decode>=1==1);
         new_implement = transmute_implement(mandatory,depend,choice,trial_implement,actNo);
         new_implement = new_implement(1:actNo+1);
         [projRelation_i,nrpr_i,nrsu_i,su_i,pred_i]=updateRelation(projRelation,nrpr,nrsu,su,pred,choiceList,new_implement(1:actNo),actNo);
         new_al = transmute_al(new_implement,nrpr_i,pred_i,actNo,trial_al);
+%         disp(new_al)
+%         disp(trial_implement)
+%         disp(new_implement)
         % 评估个体
         % 不仿真，用平均工期，算法的终止条件是最多评估多少个个体
         if flag ==1
-            expected_obj=evaluate_objective_penalty(al,rep,implement,req,resNumber,nrpr_i,pred_i,nrsu_i,su_i,deadline,resNo,actNo,C,duration);
-        end
+            expected_obj=evaluate_objective_penalty(new_al,rep,new_implement,req,resNumber,nrpr_i,pred_i,nrsu_i,su_i,deadline,resNo,actNo,C,duration);
+        else
             % 仿真
-        expected_obj=evaluate_abs_consider_penalty_new_objective(al,rep,implement,req,resNumber,nrpr_i,pred_i,nrsu_i,su_i,deadline,resNo,actNo,stochatic_d,C);
+            expected_obj=evaluate_abs_consider_penalty_new_objective(new_al,rep,new_implement,req,resNumber,nrpr_i,pred_i,nrsu_i,su_i,deadline,resNo,actNo,stochatic_d,C);
+        end
         new_implement(actNo+1)=expected_obj;
-
         if expected_obj<new_implementList(pop,actNo+1)
             new_implementList(pop,:) = new_implement;
             new_alList(pop,:) = new_al;     
-%             new_decodeList(pop,:)=new_code;
         end
         if  expected_obj<best_implement(actNo+1)
             best_implement = new_implement;
+%             disp(expected_obj)
+%             disp(best_implement)
+%             disp(best_implement(actNo+1))
             best_al = new_al;  
             best_nrpr=nrpr_i;
             best_nrsu=nrsu_i;
@@ -381,41 +368,38 @@ while nr_schedules<end_schedules
             best_projRelation=projRelation_i;
             best_su=su_i;
         end
+%         disp(best_implement(actNo+1))
     end % 生成新个体结束 一次迭代结束
     nr_schedules=nr_schedules+popsize;
-   %% 选择B个最好的个体
+   %% 选择B个最好的个体进行局部改进，剩下的个体直接进入下一代
     p=new_implementList;
     %  选择最好的pop个体作为父代，按照目标函数值升序排（最小的在前面）
     [~,fitIndex]=sort(new_implementList(:,actNo+1));
     fitIndex=fitIndex(1:elit_p);
     %% 局部搜索【在固定项目结构下，进一步探索最优活动列表和解码方式,如果局部搜索得到的个体好于原来的个体，则替换】
     for i=fitIndex'
-%         temp_code = new_decodeList(i,:);
         temp_VL=new_implementList(i,:);
         temp_AL=new_alList(i,:);
         new_implement=temp_VL;       
         [projRelation_i,nrpr_i,nrsu_i,su_i,pred_i]=updateRelation(projRelation,nrpr,nrsu,su,pred,choiceList,new_implement(1:actNo),actNo);
-        % 改code
-%         temp_code = decode_mutation1(temp_code,actNo,p_mutation);
         % 与相邻的活动移动
         new_AL=AL_mutation(temp_AL,new_implement,nrsu_i,su_i,actNo,p_mutation);
         % 不仿真，用平均工期，算法的终止条件是最多评估多少个个体
         if flag==1 
-            expected_obj=evaluate_objective_penalty(al,rep,implement,req,resNumber,nrpr_i,pred_i,nrsu_i,su_i,deadline,resNo,actNo,C,duration);
-        end
+            expected_obj=evaluate_objective_penalty(new_AL,rep,new_implement,req,resNumber,nrpr_i,pred_i,nrsu_i,su_i,deadline,resNo,actNo,C,duration);
+        else
             % 仿真
-        expected_obj=evaluate_abs_consider_penalty_new_objective(al,rep,implement,req,resNumber,nrpr_i,pred_i,nrsu_i,su_i,deadline,resNo,actNo,stochatic_d,C);
+            expected_obj=evaluate_abs_consider_penalty_new_objective(new_AL,rep,new_implement,req,resNumber,nrpr_i,pred_i,nrsu_i,su_i,deadline,resNo,actNo,stochatic_d,C);
+        end
         new_implement(actNo+1)=expected_obj;
 
         if expected_obj<new_implementList(i,actNo+1)
             new_implementList(i,:) = new_implement;
             new_alList(i,:) = new_AL;     
-%             new_decodeList(i,:)=temp_code;
         end
         if expected_obj<best_implement(actNo+1)
             best_implement=new_implement;
             best_al=new_AL;
-%             best_decode = temp_code;
             best_nrpr=nrpr_i;
             best_nrsu=nrsu_i;
             best_pred=pred_i;
@@ -426,33 +410,30 @@ while nr_schedules<end_schedules
     nr_schedules=nr_schedules+elit_p; 
 %     tused = toc(tstart);
 end % 迭代结束
-
 %% 计算真正的目标函数
 if flag== 1
+    % 评估个体用平均工期，最后需要仿真
     expected_obj=evaluate_abs_consider_penalty_new_objective(best_al,rep,best_implement,req,resNumber,best_nrpr,best_pred,best_nrsu,best_su,deadline,resNo,actNo,stochatic_d,C);
     best_implement(actNo+1) = expected_obj;
 end
-% expected_obj=evaluate_abs_consider_penalty_new_objective(best_al,rep,best_implement,req,resNumber,best_nrpr,best_pred,best_nrsu,best_su,deadline,resNo,actNo,stochatic_d,C);
 
 cputime = toc;
 disp(best_implement(actNo+1))
-disp(cputime)
+% disp(cputime)
 % profile  viewer
 %% 写入文件
-% outResults=[act,best_implement(actNo+1),best_implement(actNo+2),cputime,best_al,best_implement,end_schedules];
-% outFile=[fpathRoot,num2str(end_schedules),'_sch_de_ssgs_psgs_memory_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
-% % % 时间
-% % outResults=[act,best_implement(actNo+1),best_implement(actNo+2),cputime,best_al,best_implement];
-% % outFile=[fpathRoot,num2str(end_time),'s_sch_de_target_ssgs1_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
-% dlmwrite(outFile,outResults,'-append', 'newline', 'pc',  'delimiter', '\t');
-% % 写入gap
-% outResults1 = [act, end_gap];
-% outFile1=[fpathRoot,num2str(end_schedules),'_sch_de_gap_memory_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
-% dlmwrite(outFile1,outResults1,'-append', 'newline', 'pc',  'delimiter', '\t');
-% 
-% outResults=[];
-% outResults1=[];
-% disp(['Instance ',num2str(act),' has been solved.']);
+outResults=[act,best_implement(actNo+1),cputime,best_al,best_implement,end_schedules];
+if flag==1
+    outFile=[fpathRoot,num2str(end_schedules),'_sch_de_mean_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
+else
+    outFile=[fpathRoot,num2str(end_schedules),'_sch_de_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
+end
+% % 时间
+% outResults=[act,best_implement(actNo+1),best_implement(actNo+2),cputime,best_al,best_implement];
+% outFile=[fpathRoot,num2str(end_time),'s_sch_de_target_ssgs1_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
+dlmwrite(outFile,outResults,'-append', 'newline', 'pc',  'delimiter', '\t');
+outResults=[];
+disp(['Instance ',num2str(act),' has been solved.']);
 end % 实例
 end % 项目截止日期
 end % 组数

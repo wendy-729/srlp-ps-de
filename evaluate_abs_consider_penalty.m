@@ -15,6 +15,7 @@ for i=1:rep
     d=duration_data(i,:);
     %  解码生成进度计划
     [schedule, u_kt] = SSGS_PSGS1(AL,implement,req,resNumber,d,nrpr,pred,deadline,resNo,actNo,code);
+%     [schedule, u_kt] = SSGS_PSGS_new(AL,implement,req,resNumber,d,nrpr,pred,deadline,resNo,actNo,code);
     % 原来的解码
 %     [schedule, u_kt] = stochastic_SSGS(AL,implement,req,resNumber,d,nrpr,pred,deadline,resNo);
     u_kt1=u_kt(:,1:schedule(actNo));
