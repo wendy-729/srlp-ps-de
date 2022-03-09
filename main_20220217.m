@@ -1,6 +1,6 @@
 % 只有DE
 % 编码AL-PR-AL
-% 目标函数加惩罚
+% 目标函数加惩罚,资源波动计算到实际的完成时间
 % 改解码
 
 clc
@@ -19,9 +19,9 @@ p_mutation=para(3);
 % 情景的个数
 rep=para(4);
 % 超期的惩罚成本
-C=3;
+C=300;
 % 评价个体使用平均工期为1,仿真为0
-flag =1;
+flag =0;
 % 活动数量
 for actN=[30]
 actNumber=num2str(actN);
@@ -31,7 +31,7 @@ distribution{1,1}='U1';
 for disT=distribution
 disT=char(disT);
 % 测试哪一组数据 J10是第三组数据
-gdset = [1,8];
+gdset = [1];
 for gd=gdset
 groupdata = num2str(gd);
 for dtime=[1.2,1.4]
@@ -42,22 +42,22 @@ rng(rn_seed,'twister');% 设置随机数种子
 actno=num2str(act);
 %% 初始化数据
 if actN==30
-    fpath=['D:\研究生资料\RLP-PS汇总\实验数据集\PSPLIB\j',actNumber,'\J'];
+    fpath=['D:\研途\研究生资料\RLP-PS汇总\实验数据集\PSPLIB\j',actNumber,'\J'];
     filename=[fpath,actNumber,'_',actno,'.RCP'];
 elseif actN==5||actN ==10
-    filename =['D:\研究生资料\SRLP-PS-汇总-20211220\数据\SRLP_PS数据\J',actNumber,'\项目网络数据','\J',actNumber,'_',actno,'.txt'];
+    filename =['D:\研途\研究生资料\SRLP-PS-汇总-20211220\数据\SRLP_PS数据\J',actNumber,'\项目网络数据','\J',actNumber,'_',actno,'.txt'];
 end
 % 获取项目网络结构
 [projRelation,actNo,resNo,resNumber,duration,nrsu,nrpr,pred,su,req] = initData(filename);
 %% 随机工期
-fp_duration = ['D:\研究生资料\SRLP-PS-汇总-20211220\数据\SRLP-PS随机工期\J',actNumber,'\J',actNumber,'_',actno,'_duration.txt'];
+fp_duration = ['D:\研途\研究生资料\SRLP-PS-汇总-20211220\数据\SRLP-PS随机工期\J',actNumber,'\J',actNumber,'_',actno,'_duration.txt'];
 stochatic_d = initfile(fp_duration);
 
 % 获得柔性结构数据
 if actN==30
-    fp_choice=['D:\研究生资料\SRLP-PS汇总\数据和代码_final\SRLP-PS实验数据\J',actNumber,'\'];
+    fp_choice=['D:\研途\研究生资料\SRLP-PS汇总\数据和代码_final\SRLP-PS实验数据\J',actNumber,'\'];
 elseif actN==5||actN ==10
-    fp_choice = ['D:\研究生资料\SRLP-PS-汇总-20211220\数据\SRLP_PS数据\J',actNumber,'\',];
+    fp_choice = ['D:\研途\研究生资料\SRLP-PS-汇总-20211220\数据\SRLP_PS数据\J',actNumber,'\',];
 end
 
 choicename=[fp_choice,groupdata,'\choice\J',actNumber,'_',actno,'.txt'];
@@ -72,7 +72,7 @@ choiceList = initfile(choiceListname);
 
 % 写入文件路径
 % fpathRoot=['C:\Users\ASUS\Desktop\srlp-ps测试实验1\DE\J',actNumber,'\'];
-fpathRoot=['C:\Users\ASUS\Desktop\新模型测试实验-srlp-ps\DE\J',actNumber,'\'];
+fpathRoot=['D:\研途\研究生资料\SRLP-PS-汇总-20211220\new_model_results\DE\J',actNumber,'\'];
 setName = ['srlp_',num2str(actNo)];
 dt=num2str(dtime);
 
@@ -209,12 +209,12 @@ end
 %% 迭代
 % 终止条件
 end_time = 15;
-end_schedules=3000;
+end_schedules=5000;
 nr_schedules=popsize;
 % 最大迭代次数
 % 如果终止条件是时间限制，最大的迭代次数怎么计算？
 % max_iter = ceil(end_time/tused);
-max_iter = ceil(end_schedules/popsize);
+max_iter = ceil(end_schedules/(popsize+elit_p));
 % 迭代中的种群
 new_implementList=implementList;
 new_alList = alList;
@@ -222,6 +222,8 @@ new_alList = alList;
 % 控制参数的范围
 A_min = 0.3;
 A_max = 1.5;
+r_min = 0.1;
+r_max = 1;
 % 交叉概率
 %VL
 c_i_min = 0.5;
@@ -247,7 +249,9 @@ while nr_schedules<end_schedules
             A = A_min;
         end
         % 两种变异策略的控制概率
-        r_m = exp(-(iter_count)/max_iter);
+        r_m = exp(-(iter_count)/max_iter); % r_m逐渐减小
+        % r要逐渐增大
+%         r_m = r_min*exp(-(iter_count*log(r_min/r_max)/max_iter)); % 指数增长
 %         if r_m>r_max
 %             r_m = r_max;
 %         end
@@ -255,6 +259,7 @@ while nr_schedules<end_schedules
         current_implement = new_implementList(pop,1:actNo)+rand(1,actNo);
         current_prio = transmute_prio(new_alList(pop,:),actNo);
         for i = 1:actNo 
+%             if rand>r_m
             if rand<r_m
                 % 随机选择三个个体
                 r_list = randperm(popsize,3);
@@ -310,15 +315,27 @@ while nr_schedules<end_schedules
         % 试验个体
         trial_implement = zeros(1,actNo);
         trial_al = zeros(1,actNo);
-        % 交叉概率【CR由大变小】，指数减小
-        c_i = c_i_max*exp(iter_count*log(c_i_min/c_i_max)/max_iter);
-        c_a = c_a_max*exp(iter_count*log(c_a_min/c_a_max)/max_iter);
+        % 交叉概率【CR由小变大】，指数增加
+%         disp(iter_count)
+        c_i = c_i_min*exp(iter_count*(-log(c_i_min/c_i_max)/max_iter));
+        c_a = c_a_min*exp(iter_count*(-log(c_a_min/c_a_max)/max_iter));
+%         
+%         % 线性递增，求解效果不好
+%         c_i = c_i_min+iter_count*(c_i_max-c_i_min)/max_iter;
+%         c_a = c_a_min+iter_count*(c_a_max-c_a_min)/max_iter;
         if c_i<c_i_min
             c_i=c_i_min;
         end
         if c_a<c_a_min
             c_a=c_a_min;
         end
+        if c_i>c_i_max
+            c_i=c_i_max;
+        end
+        if c_a>c_a_max
+            c_a=c_a_max;
+        end
+
         % 用于交叉的随机数向量
         rand_i = rand(1,actNo);
         rand_a = rand(1,actNo);
@@ -419,6 +436,7 @@ end
 
 cputime = toc;
 disp(best_implement(actNo+1))
+
 % disp(cputime)
 % profile  viewer
 %% 写入文件
@@ -426,7 +444,7 @@ outResults=[act,best_implement(actNo+1),cputime,best_al,best_implement,end_sched
 if flag==1
     outFile=[fpathRoot,num2str(end_schedules),'_sch_de_mean_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
 else
-    outFile=[fpathRoot,num2str(end_schedules),'_sch_de_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
+    outFile=[fpathRoot,num2str(end_schedules),'_sch_de_new_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
 end
 % % 时间
 % outResults=[act,best_implement(actNo+1),best_implement(actNo+2),cputime,best_al,best_implement];
