@@ -9,39 +9,37 @@ rn_seed = 13776;
 popsize=1;
 % 仿真次数
 rep = 100;
-% 按时完成概率
-Pr = 0.9;
-flag=0;
-C=3;
+
+C=300;
 % 活动数量
-for actN=[30]
+for actN=[5,10]
 actNumber=num2str(actN);
 % 测试哪一组数据   
-for gd=[1,8]
+for gd=[1]
 groupdata = num2str(gd);
 for dtime=[1.2,1.4]
-% for act = 1:20
-for act=6:30:480
+for act = 1:20
+% for act=6:30:480
 rng(rn_seed,'twister');% 设置随机数种子
 actno=num2str(act);
 %% 初始化数据
 if actN==30
-    fpath=['D:\研究生资料\RLP-PS汇总\实验数据集\PSPLIB\j',actNumber,'\J'];
+    fpath=['D:\研途\研究生资料\RLP-PS汇总\实验数据集\PSPLIB\j',actNumber,'\J'];
     filename=[fpath,actNumber,'_',actno,'.RCP'];
 elseif actN==5||actN ==10
-    filename =['D:\研究生资料\SRLP-PS-汇总-20211220\数据\SRLP_PS数据\J',actNumber,'\项目网络数据','\J',actNumber,'_',actno,'.txt'];
+    filename =['D:\研途\研究生资料\SRLP-PS-汇总-20211220\数据\SRLP_PS数据\J',actNumber,'\项目网络数据','\J',actNumber,'_',actno,'.txt'];
 end
 % 获取项目网络结构
 [projRelation,actNo,resNo,resNumber,duration,nrsu,nrpr,pred,su,req] = initData(filename);
 %% 随机工期
-fp_duration = ['D:\研究生资料\SRLP-PS-汇总-20211220\数据\SRLP-PS随机工期\J',actNumber,'\J',actNumber,'_',actno,'_duration.txt'];
+fp_duration = ['D:\研途\研究生资料\SRLP-PS-汇总-20211220\数据\SRLP-PS随机工期\J',actNumber,'\J',actNumber,'_',actno,'_duration.txt'];
 stochatic_d = initfile(fp_duration);
 
 % 获得柔性结构数据
 if actN==30
-    fp_choice=['D:\研究生资料\SRLP-PS汇总\数据和代码_final\SRLP-PS实验数据\J',actNumber,'\'];
+    fp_choice=['D:\研途\研究生资料\SRLP-PS汇总\数据和代码_final\SRLP-PS实验数据\J',actNumber,'\'];
 elseif actN==5||actN ==10
-    fp_choice = ['D:\研究生资料\SRLP-PS-汇总-20211220\数据\SRLP_PS数据\J',actNumber,'\',];
+    fp_choice = ['D:\研途\研究生资料\SRLP-PS-汇总-20211220\数据\SRLP_PS数据\J',actNumber,'\',];
 end
 
 choicename=[fp_choice,groupdata,'\choice\J',actNumber,'_',actno,'.txt'];
@@ -55,7 +53,7 @@ choiceList = initfile(choiceListname);
 
 
 % 写入文件路径
-fpathRoot=['C:\Users\ASUS\Desktop\新模型测试实验-srlp-ps\RSA\J',actNumber,'\'];
+fpathRoot=['D:\研途\研究生资料\SRLP-PS-汇总-20211220\new_model_results\RSA\J',actNumber,'\'];
 setName = ['srlp_',num2str(actNo)];
 dt=num2str(dtime);
 
@@ -81,7 +79,7 @@ end_time =30;
 tstart = tic;
 tused =  toc(tstart);
 nr_schedules = 0;
-end_schedules = 3000;
+end_schedules = 5000;
 while nr_schedules<end_schedules
 % while tused<end_time
     %% 随机生成执行列表【初始活动列表】
@@ -147,34 +145,20 @@ while nr_schedules<end_schedules
         end
         EDA_AL(i,:)=AL;
     end
-    %% 初始化解码方式
-    decodeList=zeros(popsize,actNo);
-    for i=1:popsize
-        temp = rand(1,actNo);
-        decodeList(i,:) = (temp>0.5==1) ;
-    end
     % 评价个体
     for i=1:popsize
         implement=implementList(i,1:actNo);
         % 判断项目结构是否可行
         if projectFeasible(implement,choice,depend)==1
              al=EDA_AL (i,:);
-             decode = decodeList(i,:);
             % 更新优先关系
              [projRelation_i,nrpr_i,nrsu_i,su_i,pred_i]=updateRelation(projRelation,nrpr,nrsu,su,pred,choiceList,implement,actNo);         
-             
-             % 不仿真，用平均工期，算法的终止条件是最多评估多少个个体
-             if flag==1
-                expected_obj=evaluate_objective_penalty(al,rep,implement,req,resNumber,nrpr_i,pred_i,nrsu_i,su_i,deadline,resNo,actNo,C,duration);
-             else 
-                  % 仿真
-                 expected_obj=evaluate_abs_consider_penalty_new_objective(al,rep,implement,req,resNumber,nrpr_i,pred_i,nrsu_i,su_i,deadline,resNo,actNo,stochatic_d,C);      
-             end
+              % 仿真
+             expected_obj=evaluate_abs_consider_penalty_new_objective(al,rep,implement,req,resNumber,nrpr_i,pred_i,nrsu_i,su_i,deadline,resNo,actNo,stochatic_d,C);      
              implementList(i,actNo+1)=expected_obj;
             
              % 记录最好的个体【保证服务水平】
              if implementList(i,actNo+1)<best_implement(actNo+1)
-                 best_decode = decode;
                  best_implement = implementList(i,:);
                  best_AL=al;
                  best_projRelation=projRelation_i;
@@ -188,17 +172,20 @@ while nr_schedules<end_schedules
         end
     end  % 评价个体结束
 %     tused = toc(tstart);
-    nr_schedules = nr_schedules+1;
+    nr_schedules = nr_schedules+popsize;
 end % 迭代结束 
 % cputime = toc;
+%% 计算真正的目标函数
+REP= 1000;
+rep_best_implement = best_implement;
+% 1000次仿真
+fp_duration1 = ['D:\研途\研究生资料\SRLP-PS-汇总-20211220\数据\1000次仿真\J',actNumber,'\J',actNumber,'_',actno,'_duration.txt'];
+stochatic_d1 = initfile(fp_duration1);
+expected_obj=evaluate_abs_consider_penalty_new_objective(best_AL,REP,best_implement,req,resNumber,best_nrpr,best_pred,best_nrsu,best_su,deadline,resNo,actNo,stochatic_d1,C);
+rep_best_implement(actNo+1) = expected_obj;
 cputime = tused;
-
-outResults=[act,best_implement(actNo+1),cputime,best_AL,best_implement,end_schedules];
-if flag==1
-    outFile=[fpathRoot,num2str(end_schedules),'_sch_rsa_mean_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
-else
-    outFile=[fpathRoot,num2str(end_schedules),'_sch_rsa_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
-end
+outResults=[act,best_implement(actNo+1),rep_best_implement(actNo+1) ,cputime,best_AL,best_implement,end_schedules];
+outFile=[fpathRoot,num2str(end_schedules),'_sch_rsa_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
 % % 时间
 % outResults=[act,best_implement(actNo+1),best_implement(actNo+2),cputime,best_al,best_implement];
 % outFile=[fpathRoot,num2str(end_time),'s_sch_de_target_ssgs1_',setName,'_dt_',dt,'_',num2str(rep),'.txt'];
