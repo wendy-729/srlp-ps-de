@@ -1,4 +1,5 @@
 % 依赖于情景，最后不仿真
+% 修改目标函数
 clc
 clear
 % profile on 
@@ -9,8 +10,7 @@ rn_seed = 13776;
 popsize=1;
 % 仿真次数
 rep = 100;
-% 按时完成概率
-Pr = 0.9;
+
 % 活动数量
 for actN=[30]
 actNumber=num2str(actN);
@@ -18,7 +18,7 @@ actNumber=num2str(actN);
 for gd=[1]
 groupdata = num2str(gd);
 for dtime=[1.5,1.8]
-% for act = 1:20
+
 for act=6:30:480
 rng(rn_seed,'twister');% 设置随机数种子
 actno=num2str(act);
